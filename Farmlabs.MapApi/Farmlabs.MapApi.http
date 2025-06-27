@@ -1,0 +1,6 @@
+@Farmlabs.MapApi_HostAddress = http://localhost:5010
+
+GET {{Farmlabs.MapApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
