@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "w4T+CARMK0U=",
+  "dgSpecHash": "W3qwNqHSEpM=",
   "success": true,
-  "projectFilePath": "C:\\Users\\ZAMAN\\Desktop\\NewStajCode\\Farmlabs.MapApi\\Farmlabs.MapApi.csproj",
+  "projectFilePath": "C:\\Users\\ZAMAN\\Desktop\\InteratifHarita-main\\Farmlabs.MapApi\\Farmlabs.MapApi.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ZAMAN\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.4\\microsoft.aspnetcore.openapi.9.0.4.nupkg.sha512",
     "C:\\Users\\ZAMAN\\.nuget\\packages\\microsoft.netcore.platforms\\2.1.2\\microsoft.netcore.platforms.2.1.2.nupkg.sha512",
