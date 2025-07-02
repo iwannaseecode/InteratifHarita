@@ -5,6 +5,11 @@ using NetTopologySuite.Geometries;
 using System.IO.Compression;
 using System.Text.Json;
 using Newtonsoft.Json;
+using Aspose.CAD;
+using Aspose.CAD.FileFormats.Cad;
+using Aspose.CAD.FileFormats.Cad.CadObjects;
+using Aspose.CAD.ImageOptions;
+using System.Linq;
 
 namespace Farmlabs.MapApi.Controllers
 {
@@ -70,6 +75,72 @@ namespace Farmlabs.MapApi.Controllers
             finally
             {
                 try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+
+        [HttpPost("dwg/export")]
+        public IActionResult ExportDwg([FromBody] JsonElement geojson)
+        {
+            // NOTE: CadImage does not have a public constructor.
+            // Use a template DWG file as a base.
+            var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(tempDir);
+            var dwgPath = Path.Combine(tempDir, "export.dwg");
+            var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "empty.dwg");
+
+            if (!System.IO.File.Exists(templatePath))
+                return StatusCode(500, "DWG template not found. Please add 'Templates/empty.dwg'.");
+
+            try
+            {
+                using (var image = (CadImage)Image.Load(templatePath))
+                {
+                    // Copy existing entities to a list, add the new line, and assign back
+                    var entities = image.Entities?.ToList() ?? new List<CadEntityBase>();
+                    var line = new CadLine
+                    {
+                        FirstPoint = new Cad3DPoint { X = 0, Y = 0, Z = 0 },
+                        SecondPoint = new Cad3DPoint { X = 100, Y = 100, Z = 0 }
+                    };
+                    entities.Add(line);
+                    image.Entities = entities;
+
+                    var options = new DwgOptions();
+                    image.Save(dwgPath, options);
+                }
+
+                var bytes = System.IO.File.ReadAllBytes(dwgPath);
+                return File(bytes, "application/acad", "export.dwg");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"DWG export failed: {ex.Message}");
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+
+        [HttpPost("dwg/import")]
+        public IActionResult ImportDwg([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            try
+            {
+                using (var stream = file.OpenReadStream())
+                using (var image = (CadImage)Image.Load(stream))
+                {
+                    // Example: List entity types (replace with your own conversion logic)
+                    var entities = image.Entities.Select(e => e.TypeName).ToList();
+                    return Ok(new { EntityTypes = entities });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"DWG import failed: {ex.Message}");
             }
         }
     }

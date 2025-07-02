@@ -2,7 +2,7 @@ import React from 'react';
 
 interface DataPanelProps {
   handleFileImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleExport: (format: 'geojson' | 'kml' | 'shp') => void;
+  handleExport: (format: 'geojson' | 'kml' | 'shp' | 'dwg') => void;
 }
 
 const DataPanel: React.FC<DataPanelProps> = ({ handleFileImport, handleExport }) => (
@@ -24,11 +24,14 @@ const DataPanel: React.FC<DataPanelProps> = ({ handleFileImport, handleExport })
       <button onClick={() => handleExport('geojson')} style={{ marginRight: 8 }}>
         Export GeoJSON
       </button>
-      <button onClick={() => handleExport('kml')}>
+      <button onClick={() => handleExport('kml')} style={{ marginRight: 8 }}>
         Export KML
       </button>
-      <button onClick={() => handleExport('shp')}>
+      <button onClick={() => handleExport('shp')} style={{ marginRight: 8 }}>
         Export SHP
+      </button>
+      <button onClick={() => handleExport('dwg')}>
+        Export DWG
       </button>
     </div>
   </div>

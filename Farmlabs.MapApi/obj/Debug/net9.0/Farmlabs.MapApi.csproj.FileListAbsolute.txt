@@ -72,3 +72,5 @@ C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\obj\Debug\net9.0\ref
 C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\obj\Debug\net9.0\Farmlabs.MapApi.pdb
 C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\obj\Debug\net9.0\Farmlabs.MapApi.genruntimeconfig.cache
 C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\obj\Debug\net9.0\ref\Farmlabs.MapApi.dll
+C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Aspose.CAD.dll
+C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Aspose.CAD.xml

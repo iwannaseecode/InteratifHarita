@@ -34,7 +34,7 @@ export function useFileHandlers(markerSource: any) {
     }
   };
 
-  const handleExport = (format: 'geojson' | 'kml' | 'shp') => {
+  const handleExport = (format: 'geojson' | 'kml' | 'shp' | 'dwg') => {
     if (!markerSource) return;
     if (format === 'geojson') {
       const data = new GeoJSON().writeFeatures(markerSource.getFeatures());
@@ -54,6 +54,18 @@ export function useFileHandlers(markerSource: any) {
           downloadFile(blob, 'export.zip', 'application/zip');
         })
         .catch(() => alert('SHP export için backend entegrasyonu gerekir.'));
+    } else if (format === 'dwg') {
+      const geojson = new GeoJSON().writeFeaturesObject(markerSource.getFeatures());
+      fetch('http://localhost:5010/api/export/dwg/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(geojson),
+      })
+        .then(res => res.blob())
+        .then(blob => {
+          downloadFile(blob, 'export.dwg', 'application/acad');
+        })
+        .catch(() => alert('DWG export için backend entegrasyonu gerekir.'));
     }
   };
 
