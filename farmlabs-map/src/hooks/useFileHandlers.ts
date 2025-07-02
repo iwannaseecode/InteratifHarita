@@ -8,6 +8,25 @@ export function useFileHandlers(markerSource: any) {
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // DWG import support
+    if (file.name.endsWith('.dwg')) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('http://localhost:5010/api/export/dwg/import', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(res => res.json())
+        .then(data => {
+          alert('DWG import result: ' + JSON.stringify(data));
+          // Optionally: You can process data.Entities here
+        })
+        .catch(() => alert('DWG import için backend entegrasyonu gerekir.'));
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async evt => {
       const text = evt.target?.result as string;
@@ -21,7 +40,7 @@ export function useFileHandlers(markerSource: any) {
         const geojson = await shp(arrayBuffer);
         features = new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
       } else {
-        alert('Only GeoJSON, KML, and SHP supported.');
+        alert('Only GeoJSON, KML, SHP, and DWG supported.');
         return;
       }
       markerSource.clear();
