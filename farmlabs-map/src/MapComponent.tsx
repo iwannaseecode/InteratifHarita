@@ -64,9 +64,18 @@ const MapComponent: React.FC<MapComponentProps> = ({
     }
   }, [selectedLayerKey, layers]);
 
-  const { markerLayer, markerSource } = useMarkerLayer(markerCoord);
+  // Get importedFeatures and pendingImportedFeatures from useFileHandlers
+  const {
+    handleFileImport,
+    handleExport,
+    handleAddImportedToMap,
+    importedFeatures,
+    pendingImportedFeatures,
+  } = useFileHandlers();
 
-  // Only call the hook if all required values are non-null
+  // Pass importedFeatures to useMarkerLayer
+  const { markerLayer, markerSource } = useMarkerLayer(markerCoord, importedFeatures);
+
   useOpenLayersMap({
     mapRef,
     center: center ?? [0, 0],
@@ -83,8 +92,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
     setGotoLon,
     setGotoLat,
   });
-
-  const { handleFileImport, handleExport } = useFileHandlers(markerSource);
 
   const handleGoto = () => {
     const x = parseFloat(gotoLon);
@@ -132,7 +139,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
       {showPanel && (
         <DataPanel
           handleFileImport={handleFileImport}
-          handleExport={handleExport}
+          handleExport={(format) => handleExport(format, markerSource)}
+          handleAddImportedToMap={handleAddImportedToMap}
+          importedFeatures={importedFeatures}
+          pendingImportedFeatures={pendingImportedFeatures}
         />
       )}
     </div>

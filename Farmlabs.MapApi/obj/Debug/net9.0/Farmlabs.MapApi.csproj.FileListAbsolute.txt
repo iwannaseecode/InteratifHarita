@@ -74,3 +74,8 @@ C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\obj\Debug\net9.0\Far
 C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\obj\Debug\net9.0\ref\Farmlabs.MapApi.dll
 C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Aspose.CAD.dll
 C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Aspose.CAD.xml
+C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Debug\net9.0\appsettings.Development.json
+C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Debug\net9.0\appsettings.json
+C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Debug\net9.0\Farmlabs.MapApi.deps.json
+C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Debug\net9.0\Farmlabs.MapApi.runtimeconfig.json
+C:\Users\ZAMAN\Desktop\InteratifHarita-main\Farmlabs.MapApi\bin\Debug\net9.0\Debug\net9.0\Farmlabs.MapApi.staticwebassets.endpoints.json

@@ -84,6 +84,8 @@ export function useOpenLayersMap({
       })
     });
 
+    window.map = map; // For debugging purposes
+
     if (onMapReady) onMapReady(map);
 
     const handleClick = (event: any) => {
