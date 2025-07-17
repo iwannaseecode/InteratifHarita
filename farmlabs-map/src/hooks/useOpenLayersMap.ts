@@ -7,6 +7,12 @@ import TileWMS from 'ol/source/TileWMS';
 import { fromLonLat, toLonLat, transform } from 'ol/proj';
 import type { Coordinate } from 'ol/coordinate';
 
+declare global {
+  interface Window {
+    map?: Map;
+  }
+}
+
 interface UseOpenLayersMapProps {
   mapRef: RefObject<HTMLDivElement | null>;
   center: [number, number] | null;

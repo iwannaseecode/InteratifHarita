@@ -1,4 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
 
 namespace Farmlabs.MapApi.Controllers
 {
@@ -28,7 +34,7 @@ namespace Farmlabs.MapApi.Controllers
                 }
                 else
                 {
-                    result[child.Key] = child.Value;
+                    result[child.Key] = child.Value ?? string.Empty;
                 }
             }
             return Ok(result);

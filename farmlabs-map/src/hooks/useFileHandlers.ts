@@ -42,22 +42,36 @@ export function useFileHandlers() {
 
     const reader = new FileReader();
     reader.onload = async evt => {
-      const text = evt.target?.result as string;
       let features: Feature[] = [];
-      if (file.name.endsWith('.geojson') || file.name.endsWith('.json')) {
-        features = new GeoJSON().readFeatures(text, { featureProjection: 'EPSG:3857' });
-      } else if (file.name.endsWith('.kml')) {
-        features = new KML().readFeatures(text, { featureProjection: 'EPSG:3857' });
-      } else if (file.name.endsWith('.shp') || file.name.endsWith('.zip')) {
-        const arrayBuffer = await file.arrayBuffer();
-        const geojson = await shp(arrayBuffer);
-        features = new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
-      } else {
-        alert('Only GeoJSON, KML, SHP, and DWG supported.');
+      try {
+        if (file.name.endsWith('.geojson') || file.name.endsWith('.json')) {
+          const text = evt.target?.result as string;
+          features = new GeoJSON().readFeatures(text, { featureProjection: 'EPSG:3857' });
+        } else if (file.name.endsWith('.kml')) {
+          const text = evt.target?.result as string;
+          features = new KML().readFeatures(text, { featureProjection: 'EPSG:3857' });
+        } else if (file.name.endsWith('.shp') || file.name.endsWith('.zip')) {
+          const arrayBuffer = evt.target?.result as ArrayBuffer;
+          try {
+            const geojson = await (shp as any).default
+              ? await (shp as any).default(arrayBuffer)
+              : await (shp as any)(arrayBuffer);
+            features = new GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
+          } catch (err) {
+            alert('Shapefile import failed: ZIP is invalid or corrupt.');
+            setPendingImportedFeatures([]);
+            return;
+          }
+        } else {
+          alert('Only GeoJSON, KML, SHP, and DWG supported.');
+          setPendingImportedFeatures([]);
+          return;
+        }
+        setPendingImportedFeatures(features);
+      } catch (err) {
+        alert('File import failed: ' + (err as Error).message);
         setPendingImportedFeatures([]);
-        return;
       }
-      setPendingImportedFeatures(features);
     };
     if (file.name.endsWith('.shp') || file.name.endsWith('.zip')) {
       reader.readAsArrayBuffer(file);
@@ -73,10 +87,9 @@ export function useFileHandlers() {
     // setPendingImportedFeatures([]);
   };
 
-  const handleExport = (format: 'geojson' | 'kml' | 'shp' | 'dwg', markerSource?: any) => {
-    if (!markerSource) return;
-
-    const features = markerSource.getFeatures().map((f: Feature) => {
+  // Export only importedFeatures, not markerSource features!
+  const handleExport = (format: 'geojson' | 'kml' | 'shp' | 'dwg') => {
+    const features = importedFeatures.map((f: Feature) => {
       const clone = f.clone();
       const geom = clone.getGeometry();
       if (geom) {
@@ -93,7 +106,7 @@ export function useFileHandlers() {
       downloadFile(data, 'export.kml', 'application/vnd.google-earth.kml+xml');
     } else if (format === 'shp') {
       const geojson = new GeoJSON().writeFeaturesObject(features, { featureProjection: 'EPSG:4326', dataProjection: 'EPSG:4326' });
-      fetch('http://localhost:5010/api/export/shp', {
+      fetch('http://localhost:5010/api/export/shp/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(geojson),

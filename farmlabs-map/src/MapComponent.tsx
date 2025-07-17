@@ -139,7 +139,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       {showPanel && (
         <DataPanel
           handleFileImport={handleFileImport}
-          handleExport={(format) => handleExport(format, markerSource)}
+          handleExport={handleExport}
           handleAddImportedToMap={handleAddImportedToMap}
           importedFeatures={importedFeatures}
           pendingImportedFeatures={pendingImportedFeatures}
