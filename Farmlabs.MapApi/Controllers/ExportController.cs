@@ -361,13 +361,14 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                                 return new[] { lonlat[0], lonlat[1] };
                             }).ToList();
 
+                            // Polygon için GeoJSON formatı: coordinates: [ [ [lon, lat], ... ] ]
                             bool isClosed = coords.Count > 2 &&
                                             coords[0][0] == coords[coords.Count - 1][0] &&
                                             coords[0][1] == coords[coords.Count - 1][1];
 
                             if (isClosed)
                             {
-                                // Ensure closed ring for Polygon
+                                // Kapalı polyline ise Polygon olarak dön
                                 if (coords.Count < 4 || coords[0][0] != coords[coords.Count - 1][0] || coords[0][1] != coords[coords.Count - 1][1])
                                 {
                                     coords.Add(coords[0]);
@@ -385,6 +386,7 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                             }
                             else
                             {
+                                // Açık polyline ise LineString olarak dön
                                 features.Add(new
                                 {
                                     type = "Feature",
