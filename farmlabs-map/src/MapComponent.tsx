@@ -5,6 +5,8 @@ import DataPanel from './DataPanel';
 import { useOpenLayersMap } from './hooks/useOpenLayersMap';
 import { useMarkerLayer } from './hooks/useMarkerLayer';
 import { useFileHandlers } from './hooks/useFileHandlers';
+import Feature from 'ol/Feature';
+import Geometry from 'ol/geom/Geometry';
 
 interface MapComponentProps {
   center: [number, number] | null;
@@ -14,6 +16,7 @@ interface MapComponentProps {
   onMapReady?: (map: any) => void;
   setCenter: (center: [number, number]) => void;
   setZoom: (zoom: number) => void;
+  onImportedFeatures?: (features: Feature<Geometry>[]) => void;
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({
@@ -24,6 +27,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   onMapReady,
   setCenter,
   setZoom,
+  onImportedFeatures,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [selectedLayerKey, setSelectedLayerKey] = useState<string | null>(null);
@@ -112,6 +116,13 @@ const MapComponent: React.FC<MapComponentProps> = ({
     setMarkerCoord(null);
     markerSource.clear();
   };
+
+  // Notify parent (App) when importedFeatures changes
+  useEffect(() => {
+    if (onImportedFeatures) {
+      onImportedFeatures(importedFeatures);
+    }
+  }, [importedFeatures, onImportedFeatures]);
 
   return (
     <div style={{ display: 'flex' }}>

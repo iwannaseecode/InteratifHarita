@@ -306,24 +306,9 @@ AXIS[""Easting"",EAST],AXIS[""Northing"",NORTH]]";
 
                     var geometryEntities = image.Entities.Where(e => e is CadPoint || e is CadLwPolyline).ToList();
 
-                    if (geometryEntities.Count == 0)
+                    if (geometryEntities.Count == 0 || utmZone == null)
                     {
-                        var geojsonEmpty = new
-                        {
-                            type = "FeatureCollection",
-                            features = new List<object>()
-                        };
-                        return Ok(new { geojson = geojsonEmpty });
-                    }
-
-                    if (utmZone == null)
-                    {
-                        var geojsonEmpty = new
-                        {
-                            type = "FeatureCollection",
-                            features = new List<object>()
-                        };
-                        return Ok(new { geojson = geojsonEmpty });
+                        return Ok(new { geojson = new { type = "FeatureCollection", features = new List<object>() } });
                     }
 
                     double centralMeridian = -183.0 + 6.0 * utmZone.Value;
@@ -361,32 +346,32 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                                 return new[] { lonlat[0], lonlat[1] };
                             }).ToList();
 
-                            // Polygon için GeoJSON formatı: coordinates: [ [ [lon, lat], ... ] ]
+                            // Check if closed
                             bool isClosed = coords.Count > 2 &&
-                                            coords[0][0] == coords[coords.Count - 1][0] &&
-                                            coords[0][1] == coords[coords.Count - 1][1];
+                                coords[0][0] == coords[coords.Count - 1][0] &&
+                                coords[0][1] == coords[coords.Count - 1][1];
 
                             if (isClosed)
                             {
-                                // Kapalı polyline ise Polygon olarak dön
-                                if (coords.Count < 4 || coords[0][0] != coords[coords.Count - 1][0] || coords[0][1] != coords[coords.Count - 1][1])
-                                {
+                                // Ensure at least 4 points for a valid polygon ring
+                                if (coords.Count < 4)
                                     coords.Add(coords[0]);
-                                }
+                                // Force triple-nested array for Polygon
+                                var polygonCoords = new double[1][][];
+                                polygonCoords[0] = coords.Select(c => new double[] { c[0], c[1] }).ToArray();
                                 features.Add(new
                                 {
                                     type = "Feature",
                                     geometry = new
                                     {
                                         type = "Polygon",
-                                        coordinates = new List<List<double[]>> { coords }
+                                        coordinates = polygonCoords
                                     },
                                     properties = new { }
                                 });
                             }
                             else
                             {
-                                // Açık polyline ise LineString olarak dön
                                 features.Add(new
                                 {
                                     type = "Feature",
@@ -410,12 +395,7 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
             }
             catch (Exception)
             {
-                var geojsonEmpty = new
-                {
-                    type = "FeatureCollection",
-                    features = new List<object>()
-                };
-                return Ok(new { geojson = geojsonEmpty });
+                return Ok(new { geojson = new { type = "FeatureCollection", features = new List<object>() } });
             }
         }
     }

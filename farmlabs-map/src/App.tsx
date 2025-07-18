@@ -2,6 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import MapComponent from './MapComponent';
 import { fetchMapDefaults, fetchMapLayers, sendCoordinate } from './api';
 import './App.css';
+import AreaInfoPanel from './AreaInfoPanel';
+import { getArea } from 'ol/sphere';
+import Feature from 'ol/Feature';
+import Geometry from 'ol/geom/Geometry';
 
 function App() {
   const [center, setCenter] = useState<[number, number] | null>(null);
@@ -11,6 +15,9 @@ function App() {
   const [lastEpsg, setLastEpsg] = useState<string>('4326');
   const [apiResponse, setApiResponse] = useState<any>(null);
   const mapRef = useRef<any>(null);
+
+  // Alan bilgisi için import edilen poligonları takip et
+  const [importedFeatures, setImportedFeatures] = useState<Feature<Geometry>[]>([]);
 
   useEffect(() => {
     fetchMapDefaults().then(data => {
@@ -31,9 +38,25 @@ function App() {
     }
   };
 
+  // MapComponent'ten import edilen feature'ları almak için bir callback
+  const handleImportedFeatures = (features: Feature<Geometry>[]) => {
+    setImportedFeatures(features);
+  };
+
+  // Toplam poligon alanını hesapla
+  let totalArea: number | null = null;
+  if (importedFeatures.length > 0) {
+    totalArea = importedFeatures
+      .filter(f => f.getGeometry() && f.getGeometry()!.getType() === 'Polygon')
+      .map(f => getArea(f.getGeometry()!))
+      .reduce((a, b) => a + b, 0);
+  }
+
   return (
     <div className="App">
       <h1>Farmlabs Satellite Viewer</h1>
+      {/* Alan tablosu haritanın üstünde */}
+      <AreaInfoPanel area={totalArea} />
       <MapComponent
         center={center}
         zoom={zoom}
@@ -42,6 +65,8 @@ function App() {
         onMapReady={map => (mapRef.current = map)}
         setCenter={setCenter}
         setZoom={setZoom}
+        // Yeni prop: import edilen feature'ları App'e aktar
+        onImportedFeatures={handleImportedFeatures}
       />
       {lastCoord && (
         <div className="coord-info">
