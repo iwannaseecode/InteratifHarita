@@ -346,17 +346,31 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                                 return new[] { lonlat[0], lonlat[1] };
                             }).ToList();
 
-                            // Check if closed
-                            bool isClosed = coords.Count > 2 &&
-                                coords[0][0] == coords[coords.Count - 1][0] &&
-                                coords[0][1] == coords[coords.Count - 1][1];
+                            // Kapalı poligon kontrolü: ilk ve son nokta aynıysa ve en az 4 nokta varsa
+                            bool isClosed = coords.Count >= 4 &&
+                                Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-8 &&
+                                Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-8;
+
+                            // Eğer kapalı değilse ama ilk ve son nokta çok yakınsa, kapalı kabul et
+                            if (!isClosed && coords.Count >= 3)
+                            {
+                                var dx = coords[0][0] - coords[coords.Count - 1][0];
+                                var dy = coords[0][1] - coords[coords.Count - 1][1];
+                                if (Math.Sqrt(dx * dx + dy * dy) < 1e-8)
+                                {
+                                    isClosed = true;
+                                }
+                                else
+                                {
+                                    coords.Add(coords[0]);
+                                    isClosed = coords.Count >= 4 &&
+                                        Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-8 &&
+                                        Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-8;
+                                }
+                            }
 
                             if (isClosed)
                             {
-                                // Ensure at least 4 points for a valid polygon ring
-                                if (coords.Count < 4)
-                                    coords.Add(coords[0]);
-                                // Force triple-nested array for Polygon
                                 var polygonCoords = new double[1][][];
                                 polygonCoords[0] = coords.Select(c => new double[] { c[0], c[1] }).ToArray();
                                 features.Add(new
