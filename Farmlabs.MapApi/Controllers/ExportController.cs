@@ -346,30 +346,21 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                                 return new[] { lonlat[0], lonlat[1] };
                             }).ToList();
 
-                            // Kapalı poligon kontrolü: ilk ve son nokta aynıysa ve en az 4 nokta varsa
-                            bool isClosed = coords.Count >= 4 &&
-                                Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-8 &&
-                                Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-8;
+                            // Kapalı poligon kontrolü: toleranslı
+                            bool isClosed = coords.Count >= 3 &&
+                                (Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-6 &&
+                                 Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-6);
 
-                            // Eğer kapalı değilse ama ilk ve son nokta çok yakınsa, kapalı kabul et
+                            // Kapalı değilse son noktayı ekle
                             if (!isClosed && coords.Count >= 3)
                             {
-                                var dx = coords[0][0] - coords[coords.Count - 1][0];
-                                var dy = coords[0][1] - coords[coords.Count - 1][1];
-                                if (Math.Sqrt(dx * dx + dy * dy) < 1e-8)
-                                {
-                                    isClosed = true;
-                                }
-                                else
-                                {
-                                    coords.Add(coords[0]);
-                                    isClosed = coords.Count >= 4 &&
-                                        Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-8 &&
-                                        Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-8;
-                                }
+                                coords.Add(coords[0]);
+                                isClosed = coords.Count >= 4 &&
+                                    Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-6 &&
+                                    Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-6;
                             }
 
-                            if (isClosed)
+                            if (isClosed && coords.Count >= 4)
                             {
                                 var polygonCoords = new double[1][][];
                                 polygonCoords[0] = coords.Select(c => new double[] { c[0], c[1] }).ToArray();
