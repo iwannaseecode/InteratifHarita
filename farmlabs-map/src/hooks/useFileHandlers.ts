@@ -33,8 +33,8 @@ export function useFileHandlers() {
             setPendingImportedFeatures([]);
           }
         })
-        .catch(() => {
-          alert('DWG import için backend entegrasyonu gerekir.');
+        .catch((err) => {
+          alert('DWG import için backend entegrasyonu gerekir.\n' + err);
           setPendingImportedFeatures([]);
         });
       return;
@@ -83,8 +83,6 @@ export function useFileHandlers() {
   // Only insert features to the map when the button is clicked
   const handleAddImportedToMap = () => {
     setImportedFeatures(pendingImportedFeatures);
-    // Optionally clear pending after adding:
-    // setPendingImportedFeatures([]);
   };
 
   // Export only importedFeatures, not markerSource features!

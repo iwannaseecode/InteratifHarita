@@ -281,59 +281,136 @@ AXIS[""Easting"",EAST],AXIS[""Northing"",NORTH]]";
             {
                 var csFactory = new CoordinateSystemFactory();
                 var ctFactory = new CoordinateTransformationFactory();
-                int? utmZone = null;
-                bool isNorth = true;
+                
                 using (var stream = file.OpenReadStream())
                 using (var image = (CadImage)Image.Load(stream))
                 {
-                    foreach (var entity in image.Entities)
-                    {
-                        string? utmText = null;
-                        if (entity is CadText txt)
-                        {
-                            if (txt.DefaultValue != null && txt.DefaultValue.StartsWith("UTM_ZONE="))
-                                utmText = txt.DefaultValue;
-                        }
-                        if (utmText != null)
-                        {
-                            var val = utmText.Substring("UTM_ZONE=".Length);
-                            if (val.EndsWith("N")) { isNorth = true; val = val.TrimEnd('N'); }
-                            else if (val.EndsWith("S")) { isNorth = false; val = val.TrimEnd('S'); }
-                            if (int.TryParse(val, out int zone)) utmZone = zone;
-                            break;
-                        }
-                    }
-
                     var geometryEntities = image.Entities.Where(e => e is CadPoint || e is CadLwPolyline).ToList();
 
-                    if (geometryEntities.Count == 0 || utmZone == null)
+                    if (geometryEntities.Count == 0)
                     {
                         return Ok(new { geojson = new { type = "FeatureCollection", features = new List<object>() } });
                     }
 
-                    double centralMeridian = -183.0 + 6.0 * utmZone.Value;
-                    string utmWkt = $@"
-PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",DATUM[""WGS_1984"",SPHEROID[""WGS 84"",6378137,298.257223563]],PRIMEM[""Greenwich"",0],UNIT[""degree"",0.0174532925199433]],PROJECTION[""Transverse_Mercator""],PARAMETER[""latitude_of_origin"",0],PARAMETER[""central_meridian"",{centralMeridian}],PARAMETER[""scale_factor"",0.9996],PARAMETER[""false_easting"",500000],PARAMETER[""false_northing"",{(isNorth ? 0 : 10000000)}],UNIT[""metre"",1],AXIS[""Easting"",EAST],AXIS[""Northing"",NORTH]]";
-
-                    var wgs84 = csFactory.CreateFromWkt(
-                        "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]]," +
-                        "PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]]");
-                    var utm = csFactory.CreateFromWkt(utmWkt);
-                    var transform = ctFactory.CreateFromCoordinateSystems(utm, wgs84);
-
-                    var features = new List<object>();
+                    // Koordinat aralığı analizi
+                    double minX = double.MaxValue, maxX = double.MinValue;
+                    double minY = double.MaxValue, maxY = double.MinValue;
+                    
                     foreach (var entity in geometryEntities)
                     {
                         if (entity is CadPoint pt)
                         {
-                            var lonlat = transform.MathTransform.Transform(new[] { pt.PointLocation.X, pt.PointLocation.Y });
+                            minX = Math.Min(minX, pt.PointLocation.X);
+                            maxX = Math.Max(maxX, pt.PointLocation.X);
+                            minY = Math.Min(minY, pt.PointLocation.Y);
+                            maxY = Math.Max(maxY, pt.PointLocation.Y);
+                        }
+                        else if (entity is CadLwPolyline poly)
+                        {
+                            foreach (var coord in poly.Coordinates)
+                            {
+                                minX = Math.Min(minX, coord.X);
+                                maxX = Math.Max(maxX, coord.X);
+                                minY = Math.Min(minY, coord.Y);
+                                maxY = Math.Max(maxY, coord.Y);
+                            }
+                        }
+                    }
+
+                    // Koordinat sistemini belirle
+                    ICoordinateTransformation? transform = null;
+                    
+                    // Eğer koordinatlar WGS84 formatındaysa (enlem/boylam)
+                    if (maxX <= 180 && minX >= -180 && maxY <= 90 && minY >= -90)
+                    {
+                        // Zaten WGS84, dönüşüm gerek yok
+                        transform = null;
+                    }
+                    // Türkiye UTM koordinatları (metre)
+                    else if (minX > 200000 && maxX < 900000 && minY > 4000000 && maxY < 5000000)
+                    {
+                        // Türkiye UTM Zone belirleme
+                        int utmZone = 36; // Varsayılan
+                        if (minX < 400000) utmZone = 35;
+                        else if (maxX > 700000) utmZone = 37;
+                        
+                        double centralMeridian = -183.0 + 6.0 * utmZone;
+                        
+                        string utmWkt = $@"PROJCS[""WGS 84 / UTM zone {utmZone}N"",
+    GEOGCS[""WGS 84"",
+        DATUM[""WGS_1984"",
+            SPHEROID[""WGS 84"",6378137,298.257223563]],
+        PRIMEM[""Greenwich"",0],
+        UNIT[""degree"",0.0174532925199433]],
+    PROJECTION[""Transverse_Mercator""],
+    PARAMETER[""latitude_of_origin"",0],
+    PARAMETER[""central_meridian"",{centralMeridian}],
+    PARAMETER[""scale_factor"",0.9996],
+    PARAMETER[""false_easting"",500000],
+    PARAMETER[""false_northing"",0],
+    UNIT[""metre"",1]]";
+
+                        var wgs84 = csFactory.CreateFromWkt(
+                            @"GEOGCS[""WGS 84"",
+    DATUM[""WGS_1984"",
+        SPHEROID[""WGS 84"",6378137,298.257223563]],
+    PRIMEM[""Greenwich"",0],
+    UNIT[""degree"",0.0174532925199433]]");
+
+                        var utm = csFactory.CreateFromWkt(utmWkt);
+                        transform = ctFactory.CreateFromCoordinateSystems(utm, wgs84);
+                    }
+                    // ED50 koordinat sistemi (eski Türkiye haritaları)
+                    else
+                    {
+                        string ed50UtmWkt = @"PROJCS[""ED50 / UTM zone 36N"",
+    GEOGCS[""ED50"",
+        DATUM[""European_Datum_1950"",
+            SPHEROID[""International 1924"",6378388,297]],
+        PRIMEM[""Greenwich"",0],
+        UNIT[""degree"",0.0174532925199433]],
+    PROJECTION[""Transverse_Mercator""],
+    PARAMETER[""latitude_of_origin"",0],
+    PARAMETER[""central_meridian"",33],
+    PARAMETER[""scale_factor"",0.9996],
+    PARAMETER[""false_easting"",500000],
+    PARAMETER[""false_northing"",0],
+    UNIT[""metre"",1]]";
+
+                        var wgs84 = csFactory.CreateFromWkt(
+                            @"GEOGCS[""WGS 84"",
+    DATUM[""WGS_1984"",
+        SPHEROID[""WGS 84"",6378137,298.257223563]],
+    PRIMEM[""Greenwich"",0],
+    UNIT[""degree"",0.0174532925199433]]");
+
+                        var ed50Utm = csFactory.CreateFromWkt(ed50UtmWkt);
+                        transform = ctFactory.CreateFromCoordinateSystems(ed50Utm, wgs84);
+                    }
+
+                    var features = new List<object>();
+                    
+                    foreach (var entity in geometryEntities)
+                    {
+                        if (entity is CadPoint pt)
+                        {
+                            double[] coords;
+                            if (transform != null)
+                            {
+                                coords = transform.MathTransform.Transform(new[] { pt.PointLocation.X, pt.PointLocation.Y });
+                            }
+                            else
+                            {
+                                coords = new[] { pt.PointLocation.X, pt.PointLocation.Y };
+                            }
+
                             features.Add(new
                             {
                                 type = "Feature",
                                 geometry = new
                                 {
                                     type = "Point",
-                                    coordinates = new[] { lonlat[0], lonlat[1] }
+                                    coordinates = new[] { coords[0], coords[1] }
                                 },
                                 properties = new { }
                             });
@@ -342,25 +419,27 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                         {
                             var coords = poly.Coordinates.Select(v =>
                             {
-                                var lonlat = transform.MathTransform.Transform(new[] { v.X, v.Y });
-                                return new[] { lonlat[0], lonlat[1] };
+                                if (transform != null)
+                                {
+                                    var lonlat = transform.MathTransform.Transform(new[] { v.X, v.Y });
+                                    return new[] { lonlat[0], lonlat[1] };
+                                }
+                                else
+                                {
+                                    return new[] { v.X, v.Y };
+                                }
                             }).ToList();
 
-                            // Kapalı poligon kontrolü: toleranslı
-                            bool isClosed = coords.Count >= 3 &&
-                                (Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-6 &&
-                                 Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-6);
-
-                            // Kapalı değilse son noktayı ekle
-                            if (!isClosed && coords.Count >= 3)
+                            if (coords.Count >= 3)
                             {
-                                coords.Add(coords[0]);
-                                isClosed = coords.Count >= 4 &&
-                                    Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) < 1e-6 &&
-                                    Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) < 1e-6;
+                                if (Math.Abs(coords[0][0] - coords[coords.Count - 1][0]) > 1e-10 ||
+                                    Math.Abs(coords[0][1] - coords[coords.Count - 1][1]) > 1e-10)
+                                {
+                                    coords.Add(coords[0]);
+                                }
                             }
 
-                            if (isClosed && coords.Count >= 4)
+                            if (coords.Count >= 4)
                             {
                                 var polygonCoords = new double[1][][];
                                 polygonCoords[0] = coords.Select(c => new double[] { c[0], c[1] }).ToArray();
@@ -390,6 +469,7 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                             }
                         }
                     }
+                    
                     var geojson = new
                     {
                         type = "FeatureCollection",
@@ -398,9 +478,15 @@ PROJCS[""WGS 84 / UTM zone {utmZone}{(isNorth ? "N" : "S")}"",GEOGCS[""WGS 84"",
                     return Ok(new { geojson });
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return Ok(new { geojson = new { type = "FeatureCollection", features = new List<object>() } });
+                return Ok(new { 
+                    geojson = new { 
+                        type = "FeatureCollection", 
+                        features = new List<object>() 
+                    },
+                    error = ex.Message
+                });
             }
         }
     }
